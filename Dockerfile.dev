@@ -1,0 +1,51 @@
+# syntax=docker/dockerfile:1
+
+FROM golang:alpine
+
+# Install projects converter depedences
+RUN apk update && apk add --no-cache git build-base tzdata 
+
+# RUN apk update && apk add --no-cache git build-base
+
+# RUN apt update && apt install -y --no-install-recommends wget unzip ffmpeg
+
+# ENV MODEL_VERSION small-pt-0.3
+# ENV MODEL_VERSION pt-fb-v0.1.1-20220516_2113
+
+# RUN mkdir /opt/vosk-model-pt \
+#   && cd /opt/vosk-model-pt \
+#   && wget -q http://alphacephei.com/kaldi/models/vosk-model-${MODEL_VERSION}.zip \
+#   && wget -q https://github.com/alphacep/vosk-api/releases/download/v0.3.45/vosk-linux-x86_64-0.3.45.zip \
+#   && unzip vosk-linux-x86_64-0.3.45.zip \
+#   && unzip vosk-model-${MODEL_VERSION}.zip \
+#   && mv vosk-model-${MODEL_VERSION} model \
+#   && rm -rf vosk-model-${MODEL_VERSION}.zip \
+#   && rm -rf vosk-linux-x86_64-0.3.45.zip
+
+# ENV VOSK_PATH="/opt/vosk-model-pt/vosk-linux-x86_64-0.3.45"
+# ENV LD_LIBRARY_PATH=$VOSK_PATH
+# ENV CGO_CPPFLAGS="-I $VOSK_PATH"
+# ENV CGO_LDFLAGS="-L $VOSK_PATH"
+
+# RUN echo "Test vox path"
+# RUN ls $VOSK_PATH
+
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy all files
+COPY . .
+
+# Run build project
+ENV GOARCH=amd64 GOOS=linux CGO_ENABLED=1
+
+RUN go build -ldflags "-s -w" -v -o /bin/api cmd/api/main.go
+
+ENV TZ=America/Sao_Paulo
+
+EXPOSE 5000
+
+ENTRYPOINT  ["docker-entrypoint.sh"]
